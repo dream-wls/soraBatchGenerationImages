@@ -1,6 +1,6 @@
 {
-  "api_key": "sk-nW8USduDMPC6OK2g5hzsCa3PxWSyl0oAqIn0qje0tt6hcuhU",
-  "api_platform": "云雾",
+  "api_key": "sk-hzQiKZngUy38eoM5iDJNbJeONsFjuXLbsdL9zcxABa0364bA",
+  "api_platform": "apicore",
   "thread_count": 20,
   "retry_count": 3,
   "save_path": "/Users/wanglisha/Downloads",
@@ -11,7 +11,7 @@
       "content": "极致的超写实主义照片风格，画面呈现出顶级数码单反相机（如佳能EOS R5）搭配高质量定焦镜头（如85mm f/1.2）的拍摄效果。明亮、均匀，光影过渡微妙且真实，无明显阴影。绝对真实的全彩照片，无任何色彩滤镜。色彩如同在D65标准光源环境下拍摄，白平衡极其精准，所见即所得。色彩干净通透，类似于现代商业广告摄影风格。严禁任何形式的棕褐色调、复古滤镜或暖黄色偏色。画面高度细腻，细节极其丰富，达到8K分辨率的视觉效果。追求极致的清晰度和纹理表现，所有物体的材质质感都应逼真呈现，无噪点，无失真。",
       "category": "摄影风格",
       "created_time": "2024-01-01 12:00:00",
-      "usage_count": 8
+      "usage_count": 12
     },
     "动漫风格": {
       "name": "动漫风格",
@@ -38,7 +38,7 @@
   "current_style": "超写实风格",
   "custom_style_content": "极致的超写实主义照片风格，画面呈现出顶级数码单反相机（如佳能EOS R5）搭配高质量定焦镜头（如85mm f/1.2）的拍摄效果。明亮、均匀，光影过渡微妙且真实，无明显阴影。绝对真实的全彩照片，无任何色彩滤镜。色彩如同在D65标准光源环境下拍摄，白平衡极其精准，所见即所得。色彩干净通透，类似于现代商业广告摄影风格。严禁任何形式的棕褐色调、复古滤镜或暖黄色偏色。画面高度细腻，细节极其丰富，达到8K分辨率的视觉效果。追求极致的清晰度和纹理表现，所有物体的材质质感都应逼真呈现，无噪点，无失真。",
   "window_geometry": {
-    "width": 1159,
+    "width": 1160,
     "height": 771,
     "x": 39,
     "y": 25
@@ -73,15 +73,15 @@
       "api_key": "sk-nW8USduDMPC6OK2g5hzsCa3PxWSyl0oAqIn0qje0tt6hcuhU",
       "platform": "云雾",
       "created_time": "2025-09-04 15:45:22",
-      "last_used": "2025-10-17 16:51:12"
+      "last_used": "2025-10-17 17:19:35"
     },
     "书虫密钥": {
       "name": "书虫密钥",
-      "api_key": "sk-B9CKEZ9kNxzdnq9wiMuxBWG3lJoveGydHWJFFhSSCp2YZWgi",
+      "api_key": "sk-hzQiKZngUy38eoM5iDJNbJeONsFjuXLbsdL9zcxABa0364bA",
       "platform": "apicore",
       "created_time": "2025-09-26 16:26:57",
-      "last_used": "2025-10-17 15:55:40"
+      "last_used": "2025-10-17 17:24:10"
     }
   },
-  "current_key_name": "云雾密钥"
+  "current_key_name": "书虫密钥"
 }
