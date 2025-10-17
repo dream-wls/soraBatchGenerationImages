@@ -1,0 +1,87 @@
+{
+  "api_key": "sk-nW8USduDMPC6OK2g5hzsCa3PxWSyl0oAqIn0qje0tt6hcuhU",
+  "api_platform": "云雾",
+  "thread_count": 20,
+  "retry_count": 3,
+  "save_path": "/Users/wanglisha/Downloads",
+  "image_ratio": "2:3",
+  "style_library": {
+    "超写实风格": {
+      "name": "超写实风格",
+      "content": "极致的超写实主义照片风格，画面呈现出顶级数码单反相机（如佳能EOS R5）搭配高质量定焦镜头（如85mm f/1.2）的拍摄效果。明亮、均匀，光影过渡微妙且真实，无明显阴影。绝对真实的全彩照片，无任何色彩滤镜。色彩如同在D65标准光源环境下拍摄，白平衡极其精准，所见即所得。色彩干净通透，类似于现代商业广告摄影风格。严禁任何形式的棕褐色调、复古滤镜或暖黄色偏色。画面高度细腻，细节极其丰富，达到8K分辨率的视觉效果。追求极致的清晰度和纹理表现，所有物体的材质质感都应逼真呈现，无噪点，无失真。",
+      "category": "摄影风格",
+      "created_time": "2024-01-01 12:00:00",
+      "usage_count": 8
+    },
+    "动漫风格": {
+      "name": "动漫风格",
+      "content": "二次元动漫风格，色彩鲜艳饱满，线条清晰，具有典型的日式动漫美学特征。人物造型精致，表情生动，背景细腻。",
+      "category": "插画风格",
+      "created_time": "2024-01-01 12:01:00",
+      "usage_count": 1
+    },
+    "油画风格": {
+      "name": "油画风格",
+      "content": "经典油画艺术风格，笔触丰富，色彩层次分明，具有厚重的质感和艺术气息。光影效果自然，构图典雅。",
+      "category": "艺术风格",
+      "created_time": "2024-01-01 12:02:00",
+      "usage_count": 0
+    },
+    "三维卡通渲染风格": {
+      "name": "三维卡通渲染风格",
+      "content": "三维卡通渲染风格，色彩明亮饱满，质感细腻逼真，具有典型的皮克斯动画美学特征。表情生动传神，细节刻画精致。背景为阳光公园场景，色调温暖，层次丰富。",
+      "category": "自定义风格",
+      "created_time": "2025-09-03 11:53:31",
+      "usage_count": 60
+    }
+  },
+  "current_style": "超写实风格",
+  "custom_style_content": "极致的超写实主义照片风格，画面呈现出顶级数码单反相机（如佳能EOS R5）搭配高质量定焦镜头（如85mm f/1.2）的拍摄效果。明亮、均匀，光影过渡微妙且真实，无明显阴影。绝对真实的全彩照片，无任何色彩滤镜。色彩如同在D65标准光源环境下拍摄，白平衡极其精准，所见即所得。色彩干净通透，类似于现代商业广告摄影风格。严禁任何形式的棕褐色调、复古滤镜或暖黄色偏色。画面高度细腻，细节极其丰富，达到8K分辨率的视觉效果。追求极致的清晰度和纹理表现，所有物体的材质质感都应逼真呈现，无噪点，无失真。",
+  "window_geometry": {
+    "width": 1159,
+    "height": 771,
+    "x": 39,
+    "y": 25
+  },
+  "category_links": {
+    "kpop": [
+      {
+        "name": "小紫",
+        "path": "images/kpop/小紫.png",
+        "url": ""
+      },
+      {
+        "name": "小橙",
+        "path": "images/kpop/小橙.jpg",
+        "url": ""
+      },
+      {
+        "name": "小小紫",
+        "path": "images/kpop/小小紫.png",
+        "url": ""
+      },
+      {
+        "name": "小白",
+        "path": "images/kpop/小白.png",
+        "url": ""
+      }
+    ]
+  },
+  "key_library": {
+    "云雾密钥": {
+      "name": "云雾密钥",
+      "api_key": "sk-nW8USduDMPC6OK2g5hzsCa3PxWSyl0oAqIn0qje0tt6hcuhU",
+      "platform": "云雾",
+      "created_time": "2025-09-04 15:45:22",
+      "last_used": "2025-10-17 16:51:12"
+    },
+    "书虫密钥": {
+      "name": "书虫密钥",
+      "api_key": "sk-B9CKEZ9kNxzdnq9wiMuxBWG3lJoveGydHWJFFhSSCp2YZWgi",
+      "platform": "apicore",
+      "created_time": "2025-09-26 16:26:57",
+      "last_used": "2025-10-17 15:55:40"
+    }
+  },
+  "current_key_name": "云雾密钥"
+}
