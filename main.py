@@ -307,8 +307,20 @@ class AsyncWorker:
                             response_text = await response.text()
                             logging.info(f"API响应内容: {response_text}")
                             
-                            response.raise_for_status()
-                            data = await response.json()
+                            # 优先处理非2xx错误，尽量提取后端的具体错误信息
+                            if response.status >= 400:
+                                try:
+                                    err_data = await response.json(content_type=None)
+                                    backend_msg = (
+                                        (err_data.get('error') or {}).get('message')
+                                        if isinstance(err_data, dict) else None
+                                    ) or err_data.get('message') if isinstance(err_data, dict) else None
+                                    raise ValueError(f"{response.status}: {backend_msg or response_text[:200]}")
+                                except Exception:
+                                    raise ValueError(f"{response.status}: {response_text[:200]}")
+                            
+                            # 解析正常返回
+                            data = await response.json(content_type=None)
                             
                             # 从返回的markdown中提取图片URL
                             content = data["choices"][0]["message"]["content"]
@@ -325,7 +337,9 @@ class AsyncWorker:
                                 self.signals.finished.emit(self.prompt, image_url, self.number or "")
                                 return
                             else:
-                                error_msg = "响应中没有找到图片URL"
+                                # 附带一段原始内容，便于定位平台返回格式
+                                preview = content.strip().replace('\n', ' ')[:200]
+                                error_msg = f"响应中没有找到图片URL · 内容片段: {preview}"
                                 logging.error(error_msg)
                                 raise ValueError(error_msg)
                         
@@ -522,7 +536,7 @@ class SettingsDialog(QDialog):
             self.thread_count = 5
             self.retry_count = 3
             self.save_path = ""
-            self.image_ratio = "3:2"
+            self.image_ratio = "2:3"
             self.style_library = {}
             self.category_links = {}
             self.current_style = ""
@@ -655,7 +669,7 @@ class SettingsDialog(QDialog):
         
         params_layout.addWidget(QLabel("图片比例:"), 1, 0)
         self.ratio_combo = QComboBox()
-        self.ratio_combo.addItems(["3:2", "2:3"])
+        self.ratio_combo.addItems(["3:2", "2:3", "16:9"])
         params_layout.addWidget(self.ratio_combo, 1, 1)
         
         layout.addWidget(params_group)
@@ -874,8 +888,55 @@ class SettingsDialog(QDialog):
         self.image_table.setHorizontalHeaderLabels(["图片名称", "路径/链接"])
         self.image_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.image_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        # 启用多选模式
+        self.image_table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.image_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.image_table.cellChanged.connect(self.on_image_changed)
         self.image_table.cellDoubleClicked.connect(self.on_image_table_double_clicked)
+        
+        # 优化滚动体验
+        self.image_table.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.image_table.setHorizontalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.image_table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.image_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        
+        # 设置滚动条样式，让滚动更平滑
+        image_scrollbar_style = """
+        QScrollBar:vertical {
+            background: #f0f0f0;
+            width: 12px;
+            border-radius: 6px;
+        }
+        QScrollBar::handle:vertical {
+            background: #c0c0c0;
+            border-radius: 6px;
+            min-height: 20px;
+        }
+        QScrollBar::handle:vertical:hover {
+            background: #a0a0a0;
+        }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            height: 0px;
+        }
+        QScrollBar:horizontal {
+            background: #f0f0f0;
+            height: 12px;
+            border-radius: 6px;
+        }
+        QScrollBar::handle:horizontal {
+            background: #c0c0c0;
+            border-radius: 6px;
+            min-width: 20px;
+        }
+        QScrollBar::handle:horizontal:hover {
+            background: #a0a0a0;
+        }
+        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+            width: 0px;
+        }
+        """
+        self.image_table.setStyleSheet(image_scrollbar_style)
+        
         right_layout.addWidget(self.image_table)
         
         # 使用说明
@@ -2308,7 +2369,7 @@ class MainWindow(QMainWindow):
         self.thread_count = 5
         self.retry_count = 3
         self.save_path = ""
-        self.image_ratio = "3:2"
+        self.image_ratio = "2:3"
         self.style_library = {}
         self.category_links = {}
         self.current_style = ""
@@ -2553,6 +2614,29 @@ class MainWindow(QMainWindow):
         self.export_prompts_button.clicked.connect(self.export_prompts_to_csv)
         button_layout.addWidget(self.export_prompts_button)
         
+        # 重试下载按钮
+        self.retry_download_button = QPushButton("🔄 重试下载")
+        self.retry_download_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2196f3;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #1976d2;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
+        self.retry_download_button.clicked.connect(self.retry_download_selected)
+        self.retry_download_button.setEnabled(False)  # 初始状态禁用
+        button_layout.addWidget(self.retry_download_button)
+        
         button_layout.addStretch()
         
         # 风格选择
@@ -2725,6 +2809,7 @@ class MainWindow(QMainWindow):
         self.stop_generation_button.clicked.connect(self.stop_generation)
         self.stop_generation_button.setEnabled(False)  # 初始状态禁用
         control_layout.addWidget(self.stop_generation_button)
+        
         
         # 进度信息
         progress_layout = QVBoxLayout()
@@ -3734,48 +3819,66 @@ class MainWindow(QMainWindow):
                 return new_filename
             counter += 1
     
-    async def download_image_async(self, image_url, number, original_prompt):
-        """异步下载图片到本地"""
-        try:
-            # 确保保存目录存在
-            os.makedirs(self.save_path, exist_ok=True)
-            
-            # 生成不重复的文件名
-            filename = self.get_unique_filename(number, self.save_path)
-            file_path = os.path.join(self.save_path, filename)
-            
-            # 使用aiohttp异步下载图片
-            ssl_context = setup_ssl_context()
-            connector = aiohttp.TCPConnector(ssl=ssl_context)
-            timeout = aiohttp.ClientTimeout(total=300)  # 5分钟超时
-            
-            async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
-                async with session.get(image_url) as response:
-                    if response.status == 200:
-                        # 使用aiofiles异步写入文件
-                        import aiofiles
-                        async with aiofiles.open(file_path, 'wb') as f:
-                            async for chunk in response.content.iter_chunked(8192):
-                                await f.write(chunk)
-                        
-                        logging.info(f"图片下载成功: {filename}")
-                        logging.info(f"准备调用mark_download_complete，参数: {original_prompt}, 实际文件名: {filename}")
-                        
-                        # 使用信号机制通知主线程，传递实际文件名
-                        try:
-                            self.mark_download_complete(original_prompt, filename)
-                            logging.info(f"直接调用mark_download_complete成功")
-                        except Exception as e:
-                            logging.error(f"直接调用mark_download_complete失败: {e}")
-                    else:
-                        logging.error(f"图片下载失败 - HTTP {response.status}: {image_url}")
-                        QTimer.singleShot(0, lambda: self.mark_download_failed(original_prompt, f"HTTP {response.status}"))
-                        
-        except Exception as e:
-            error_msg = f"保存图片失败: {str(e)}"
-            logging.error(error_msg)
-            from PyQt6.QtCore import QTimer
-            QTimer.singleShot(0, lambda: self.mark_download_failed(original_prompt, error_msg))
+    async def download_image_async(self, image_url, number, original_prompt, retry_count=3):
+        """异步下载图片到本地，支持重试机制"""
+        for attempt in range(retry_count + 1):
+            try:
+                # 确保保存目录存在
+                os.makedirs(self.save_path, exist_ok=True)
+                
+                # 生成不重复的文件名
+                filename = self.get_unique_filename(number, self.save_path)
+                file_path = os.path.join(self.save_path, filename)
+                
+                # 使用aiohttp异步下载图片，增加更短的超时时间
+                ssl_context = setup_ssl_context()
+                connector = aiohttp.TCPConnector(ssl=ssl_context, limit=100, limit_per_host=30)
+                timeout = aiohttp.ClientTimeout(total=120, connect=30, sock_read=60)  # 2分钟总超时，30秒连接超时
+                
+                async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
+                    # 添加重试延迟
+                    if attempt > 0:
+                        await asyncio.sleep(attempt * 2)  # 递增延迟：2秒、4秒、6秒
+                        logging.info(f"第{attempt + 1}次重试下载: {image_url}")
+                    
+                    async with session.get(image_url, headers={
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }) as response:
+                        if response.status == 200:
+                            # 使用aiofiles异步写入文件
+                            import aiofiles
+                            async with aiofiles.open(file_path, 'wb') as f:
+                                async for chunk in response.content.iter_chunked(8192):
+                                    await f.write(chunk)
+                            
+                            logging.info(f"图片下载成功: {filename} (尝试{attempt + 1}次)")
+                            logging.info(f"准备调用mark_download_complete，参数: {original_prompt}, 实际文件名: {filename}")
+                            
+                            # 使用信号机制通知主线程，传递实际文件名
+                            try:
+                                self.mark_download_complete(original_prompt, filename)
+                                logging.info(f"直接调用mark_download_complete成功")
+                            except Exception as e:
+                                logging.error(f"直接调用mark_download_complete失败: {e}")
+                            return  # 下载成功，退出重试循环
+                        else:
+                            error_msg = f"HTTP {response.status}: {image_url}"
+                            logging.warning(f"图片下载失败 - {error_msg} (尝试{attempt + 1}次)")
+                            if attempt == retry_count:  # 最后一次尝试
+                                QTimer.singleShot(0, lambda: self.mark_download_failed(original_prompt, error_msg))
+                                return
+                            
+            except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as e:
+                error_msg = f"网络错误: {str(e)}"
+                logging.warning(f"下载异常 - {error_msg} (尝试{attempt + 1}次)")
+                if attempt == retry_count:  # 最后一次尝试
+                    QTimer.singleShot(0, lambda: self.mark_download_failed(original_prompt, error_msg))
+                    return
+            except Exception as e:
+                error_msg = f"未知错误: {str(e)}"
+                logging.error(f"下载失败 - {error_msg}")
+                QTimer.singleShot(0, lambda: self.mark_download_failed(original_prompt, error_msg))
+                return
     
     def find_actual_image_file(self, image_number, save_path):
         """查找实际的图片文件名"""
@@ -3822,6 +3925,97 @@ class MainWindow(QMainWindow):
         self.refresh_prompt_table()
         self.update_generation_progress()
         self.check_generation_completion()
+    
+    def retry_download_selected(self):
+        """重试下载选中的项目"""
+        selected_rows = set()
+        for item in self.prompt_table.selectedItems():
+            selected_rows.add(item.row())
+        
+        if not selected_rows:
+            QMessageBox.information(self, "提示", "请先选择要重试下载的项目")
+            return
+        
+        # 收集需要重试的项目
+        retry_items = []
+        for row in selected_rows:
+            if row < len(self.prompt_table_data):
+                data = self.prompt_table_data[row]
+                # 重试失败的项目和卡在下载中的项目
+                if (data['status'] == '失败' or data['status'] == '下载中') and 'image_url' in data:
+                    retry_items.append({
+                        'row': row,
+                        'data': data,
+                        'image_url': data['image_url'],
+                        'number': data['number'],
+                        'original_prompt': data['prompt']
+                    })
+        
+        if not retry_items:
+            QMessageBox.information(self, "提示", "选中的项目中没有需要重试的项目（失败或下载中）")
+            return
+        
+        # 确认对话框
+        reply = QMessageBox.question(
+            self, 
+            "确认重试", 
+            f"确定要重试下载 {len(retry_items)} 个失败的项目吗？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self.start_retry_download(retry_items)
+    
+    def start_retry_download(self, retry_items):
+        """开始重试下载"""
+        if not hasattr(self, 'retry_tasks'):
+            self.retry_tasks = []
+        
+        # 更新按钮状态
+        self.retry_download_button.setEnabled(False)
+        self.retry_download_button.setText(f"🔄 重试中... ({len(retry_items)})")
+        
+        # 为每个重试项目创建下载任务
+        for item in retry_items:
+            # 更新状态为重试中
+            item['data']['status'] = '重试中...'
+            item['data']['error_msg'] = ''
+            
+            # 创建异步下载任务
+            task = asyncio.create_task(
+                self.download_image_async(
+                    item['image_url'], 
+                    item['number'], 
+                    item['original_prompt']
+                )
+            )
+            self.retry_tasks.append(task)
+        
+        # 刷新表格显示
+        self.refresh_prompt_table()
+        
+        # 设置完成回调
+        asyncio.create_task(self.monitor_retry_tasks())
+    
+    async def monitor_retry_tasks(self):
+        """监控重试任务完成情况"""
+        if not hasattr(self, 'retry_tasks') or not self.retry_tasks:
+            return
+        
+        # 等待所有重试任务完成
+        try:
+            await asyncio.gather(*self.retry_tasks, return_exceptions=True)
+        except Exception as e:
+            logging.error(f"重试任务监控异常: {e}")
+        finally:
+            # 重置按钮状态
+            self.retry_download_button.setEnabled(True)
+            self.retry_download_button.setText("🔄 重试下载")
+            self.retry_tasks.clear()
+            
+            # 刷新表格
+            self.refresh_prompt_table()
+            self.update_generation_progress()
     
     def refresh_thumbnail_for_number(self, number):
         """刷新指定编号的缩略图显示"""
@@ -3890,6 +4084,32 @@ class MainWindow(QMainWindow):
                 self.overall_progress_label.setText(f"进行中: 等待{waiting_count}个 | 生成中{generating_count}个 | 已完成{success_count}个 | 失败{failed_count}个")
             else:
                 self.overall_progress_label.setText(f"已处理 {completed_tasks}/{total_tasks} 个任务 | 成功{success_count}个 | 失败{failed_count}个")
+        
+        # 更新重试下载按钮状态
+        self.update_retry_button_state()
+    
+    def update_retry_button_state(self):
+        """更新重试下载按钮状态"""
+        # 检查是否有失败的项目或卡在下载中的项目
+        retry_items = [data for data in self.prompt_table_data 
+                      if (data.get('status', '') == '失败' or data.get('status', '') == '下载中') 
+                      and 'image_url' in data]
+        
+        # 检查是否有正在进行的重试任务
+        retry_in_progress = hasattr(self, 'retry_tasks') and self.retry_tasks
+        
+        if retry_items and not retry_in_progress:
+            # 有需要重试的项目且没有重试任务在进行，启用按钮
+            self.retry_download_button.setEnabled(True)
+            self.retry_download_button.setText(f"🔄 重试下载 ({len(retry_items)})")
+        elif retry_in_progress:
+            # 有重试任务在进行，禁用按钮
+            self.retry_download_button.setEnabled(False)
+            self.retry_download_button.setText("🔄 重试中...")
+        else:
+            # 没有需要重试的项目，禁用按钮
+            self.retry_download_button.setEnabled(False)
+            self.retry_download_button.setText("🔄 重试下载")
     
     def check_generation_completion(self):
         """检查生成是否完成"""
@@ -3916,6 +4136,9 @@ class MainWindow(QMainWindow):
         
         # 禁用停止按钮
         self.stop_generation_button.setEnabled(False)
+        
+        # 更新重试下载按钮状态
+        self.update_retry_button_state()
         
         # 计算性能统计
         if hasattr(self, 'generation_start_time'):
@@ -3997,7 +4220,7 @@ class MainWindow(QMainWindow):
                 'thread_count': 5,
                 'retry_count': 3,
                 'save_path': '',
-                'image_ratio': '3:2',
+                'image_ratio': '2:3',
                 'style_library': {
                     '超写实风格': {
                         'name': '超写实风格',
@@ -4047,7 +4270,7 @@ class MainWindow(QMainWindow):
                 self.thread_count = config.get('thread_count', 5)
                 self.retry_count = config.get('retry_count', 3)
                 self.save_path = config.get('save_path', '')
-                self.image_ratio = config.get('image_ratio', '3:2')
+                self.image_ratio = config.get('image_ratio', '2:3')
                 
                 # 加载风格库
                 self.style_library = config.get('style_library', {})
